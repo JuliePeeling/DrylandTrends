@@ -8,7 +8,7 @@ Throughout each code file (both Python and JavaScript), there are places with **
 
 The Google Earth Engine code is heavily drawn from “Detecting Land Cover Change in Rangelands”, a chapter authored by Ginger Allington and Natalie Kreitzer in the book “Cloud-Based Remote Sensing with Google Earth Engine: Fundamentals and Applications”.
 
-Feel free to contact Julie Peeling at jap479@cornell.edu or peelingj0919@gmail.com with questions.
+Feel free to contact Julie Peeling at jap479@cornell.edu with questions.
 
 **References**
 Allington, G., & Kreitzer, N. (2024). Detecting Land Cover Change in Rangelands. In J. A. Cardille, M. A. Crowley, D. Saah, & N. E. Clinton (Eds.), _Cloud-Based Remote Sensing with Google Earth Engine: Fundamentals and Applications_. Springer International Publishing. https://link.springer.com/10.1007/978-3-031-26588-4
