@@ -18,9 +18,9 @@
   // 12. Visualize residuals collection for the AOI
  
 //-------1. Inputs----///  
-var aoi = ee.Collection.loadTable("projects/ee-jap479/assets/NM_StudyArea"); //Set Study Area
+var aoi = ee.Collection.loadTable("projects/ee-project/assets/NM_StudyArea"); //INPUT: Google Earth Enginge cloud project name (replace "ee-project") and shapefile for the study area
 var aoi_name = 'NM_studyArea';
-var vectorizeNLCD = ee.Collection.loadTable("projects/ee-jap479/assets/NM_StudyArea_NLCDfiltered");
+var vectorizeNLCD = ee.Collection.loadTable("projects/ee-project/assets/NM_StudyArea_NLCDfiltered"); //INPUT: Google Earth Engine cloud project name (replace "ee-project") and shapefile for the study area filtered around relevant NLCD classes
 var startYear_Num = 1985; 
 var endYear_Num   = 2023; 
 var numYears = endYear_Num - startYear_Num;
