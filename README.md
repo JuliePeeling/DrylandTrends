@@ -12,5 +12,6 @@ Please note that the Google Earth Engine code is heavily drawn from code provide
 Contact Julie Peeling at jap479@cornell.edu with questions.
 
 **References**
+
 Allington, G., & Kreitzer, N. (2024). Detecting Land Cover Change in Rangelands. In J. A. Cardille, M. A. Crowley, D. Saah, & N. E. Clinton (Eds.), Cloud-Based Remote Sensing with Google Earth Engine: Fundamentals and Applications. Springer International Publishing. https://link.springer.com/10.1007/978-3-031-26588-4
 
