@@ -247,8 +247,7 @@ clusters_final.sort()
 
 ## Create plots of all the mean cluster trajectories (Note that these plots are based on min-max scaled values)
 num_clusters = k_clusters
-#colors = ["#eae200", "#7fccf6","#2bd78d","#510068","#f4a03c","#ff8bf2","#3da3a5","#d1b9e7","#b744eb","#8b86fc","#b1f892","#859c00","#5f5f5f","#007092",
-#          "#59c626","#f24a71","#bfc71b","#b8b8b8","#91063c","#e7788c"] #INPUT: set a color palette with colors for each cluster if desired; example given here for 20 clusters
+#colors = ["#eae200", "#7fccf6","#2bd78d","#510068","#f4a03c","#ff8bf2","#3da3a5","#d1b9e7","#b744eb","#8b86fc","#b1f892","#859c00","#5f5f5f","#007092"] #INPUT: set a color palette with colors for each cluster if desired; example given here for 14 clusters
 ## this sets up a set of subplots that should contain enough boxes for all of the clusters
 rows = int(math.sqrt(num_clusters))
 cols = math.ceil(math.sqrt(num_clusters))
@@ -272,8 +271,7 @@ for i in np.arange(0,rows):
 
 ## Create plots of all the mean cluster trajectories with one standard deviation (Note that these plots are based on min-max scaled values)
 num_clusters = k_clusters
-#colors = ["#eae200", "#7fccf6","#2bd78d","#510068","#f4a03c","#ff8bf2","#3da3a5","#d1b9e7","#b744eb","#8b86fc","#b1f892","#859c00","#5f5f5f","#007092",
-#          "#59c626","#f24a71","#bfc71b","#b8b8b8","#91063c","#e7788c"] #INPUT: set a color palette with colors for each cluster if desired; example given here for 20 clusters
+#colors = ["#eae200", "#7fccf6","#2bd78d","#510068","#f4a03c","#ff8bf2","#3da3a5","#d1b9e7","#b744eb","#8b86fc","#b1f892","#859c00","#5f5f5f","#007092"] #INPUT: set a color palette with colors for each cluster if desired; example given here for 14 clusters
 ## this sets up a set of subplots that should contain enough boxes for all of the clusters
 rows = int(math.sqrt(num_clusters))
 cols = math.ceil(math.sqrt(num_clusters))
@@ -343,8 +341,7 @@ clusters_final_unsc.sort()
 
 ## Create plots of all the mean cluster trajectories with one standard deviation
 num_clusters = k_clusters
-#colors = ["#eae200", "#7fccf6","#2bd78d","#510068","#f4a03c","#ff8bf2","#3da3a5","#d1b9e7","#b744eb","#8b86fc","#b1f892","#859c00","#5f5f5f","#007092",
-#          "#59c626","#f24a71","#bfc71b","#b8b8b8","#91063c","#e7788c"] #INPUT: set a color palette with colors for each cluster if desired; example given here for 20 clusters
+#colors = ["#eae200", "#7fccf6","#2bd78d","#510068","#f4a03c","#ff8bf2","#3da3a5","#d1b9e7","#b744eb","#8b86fc","#b1f892","#859c00","#5f5f5f","#007092"] #INPUT: set a color palette with colors for each cluster if desired; example given here for 14 clusters
 ## this sets up a set of subplots that should contain enough boxes for all of the clusters
 rows = int(math.sqrt(num_clusters))
 cols = math.ceil(math.sqrt(num_clusters))
