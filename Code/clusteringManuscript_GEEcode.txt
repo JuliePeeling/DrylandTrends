@@ -1,23 +1,20 @@
-//--------STEPS BELOW ARE:
+//--------STEPS BELOW ARE:      
 // 1. Set inputs
-// 2. Build base LS imagery collections
-// 3. Compile precipitation data  
-    //Create function to calc anu water year precip and compile CHIRPS data
-// 4. Calculate NDVI band
-    // Have to do it separately for LS57 and LS8 bc diff bands
-// 5. Mask Clouds and Cloud Shadows
-// 6. Create greenest pixel composite for each yr
-// 7. Replace cloudmasked pixels with calc'd greenness values
+// 2. Build base LS imagery collections and
+// 3. Mask Clouds and Cloud Shadows and Fill Scanlines
+// 4. Calculate MSAVI2 band
+    // Have to do it separately for Landsat 5 & 7 and Landsat 8 because they have different bands
+// 5. Create greenest pixel composite for each yr
+// 6. Replace cloudmasked pixels with calc'd greenness values
     // Create a proxy collection to replace greeness values from cloudmasked pixels
     // Swap out values
-// 8. Combine Precip and Greenness lists into an Image Collection
-// 9. Regression model of NDVI ~ Precip to account for precip effects on productivity    [START HERE??]
-    // Extract predicted ndvi and residuals
-// 10. Clip out built up areas and water from the collection
-  // 11. Export observed greenness values
-  // 12. Visualize residuals collection for the AOI
+// 7. Clip collection to relevant NLCD classes
+// 8. Export observed greenness values
+  
+  
  
 //-------1. Inputs----///  
+var vegInd = "MSAVI2"
 var aoi = ee.Collection.loadTable("projects/ee-project/assets/NM_StudyArea"); //INPUT: Google Earth Enginge cloud project name (replace "ee-project") and shapefile for the study area
 var aoi_name = 'NM_studyArea';
 var vectorizeNLCD = ee.Collection.loadTable("projects/ee-project/assets/NM_StudyArea_NLCDfiltered"); //INPUT: Google Earth Engine cloud project name (replace "ee-project") and shapefile for the study area filtered around relevant NLCD classes
@@ -111,7 +108,7 @@ function maskL8sr(image) {
   var cloudsBitMask = (1 << 3);
   // Get the pixel QA band.
   var qa = image.select('QA_PIXEL');
-  // Both flags should be set to zero, indicating clear conditions. NOTE NK May have to up this to low confidence
+  // Both flags should be set to zero, indicating clear conditions. 
   var mask = qa.bitwiseAnd(cloudShadowBitMask).eq(0)
                  .and(qa.bitwiseAnd(cloudsBitMask).eq(0));
   return image.updateMask(mask);
@@ -121,7 +118,7 @@ function maskL8sr(image) {
 var Landsat_8_Corrected =  Landsat_8.map(maskL8sr);
 
 
-////////////correct Landsat 7 scanline issue /////////////////////
+//Correct Landsat 7 scanline issue 
 //fill l7 with L5 and L8 means at each date
 
 //function to find the L5 and L8 images at the closest date in the previous and next years from the problem image
@@ -182,88 +179,59 @@ Map.addLayer(Landsat7_cloudMask.first(), visualization)
 var imageColl_LS57 = Landsat5_cloudMask.merge(Landsat7_filled);
 
 
-//--------------4. Compile Precipitation-------------//
-// function to calculate total precipitation for given year
-var CHIRPS = ee.ImageCollection("UCSB-CHG/CHIRPS/DAILY")
-var calcPrecipitation = function (year, aoi) {
-    var nextYear = year + 1;
-    var CHIRPScollThisYear = CHIRPS.filter(ee.Filter.date(year + startDate, nextYear + endDate)); 
-  var prepLayerColl = CHIRPScollThisYear.select('precipitation');
-  var prepLayer = prepLayerColl.sum();
-  return [prepLayer, prepLayer];
+
+//-----------------------------------4. Calculate MSAVI2--------------------------------------------------------//
+
+//Calculate MSAVI2 for Landsat 5 & 7
+var addMSAVI2_LS57 = function(img) {
+  var nir = img.select(['SR_B4']);
+  var red = img.select(['SR_B3']);
+  var MSAVI2 = nir.multiply(2).add(1)
+  .subtract(nir.multiply(2).add(1).pow(2)
+    .subtract(nir.subtract(red).multiply(8)).sqrt()
+  ).divide(2).rename('MSAVI2');
+  return img.addBands(MSAVI2).clip(aoi);
 };
 
 
-// compile CHIRPS precipitation data
-var prepImageList = ee.List([]);
-for (var year = precip_startYear; year <= precip_endYear; year++) {
-  var prepStuff = calcPrecipitation (year, aoi);
-  var prepImage = prepStuff[1]
-    .clip(aoi)
-    .set('year', year);
-  prepImageList = prepImageList.add(prepImage);
-}
+//Map MSAVI2 over collection
+var imageCollMSAVI2_LS57 = imageColl_LS57.map(addMSAVI2_LS57);
 
-//print(prepImageList, "Precipitation");
-
-
-//------------------------COMPILE PRECIPITATION---------------------------------------//
-// compile CHIRPS precipitation data
-var meanPrecipList = ee.List([]);
-var precipImageList = ee.List([]);
-var yearList = ee.List([]);
-for (var year = precip_startYear; year < precip_endYear; year++) {
-  var precipStuff = calcPrecipitation (year, aoi);
-  var meanPrecip = precipStuff[0];
-  var precipImage = precipStuff[1]
-    .clip(aoi)
-    .set('year', year);
-  meanPrecipList = meanPrecipList.add(meanPrecip);
-  precipImageList = precipImageList.add(precipImage);
-  yearList = yearList.add(year);
-}
-
-
-//-----------------------------------5. Calculate NDVI--------------------------------------------------------//
-
-//Calculate NDVI and Add it to every image 
-var addNDVI_LS57 = function(img) {
-  var ndvi = img.normalizedDifference(['SR_B4', 'SR_B3']).rename('NDVI');
-  return img.addBands(ndvi).clip(aoi);
+//Calculate MSAVI2 for Landsat 8
+var addMSAVI2_LS8 = function(img) {
+  var nir = img.select(['SR_B5']);
+  var red = img.select(['SR_B4']);
+  var MSAVI2 = nir.multiply(2).add(1)
+  .subtract(nir.multiply(2).add(1).pow(2)
+    .subtract(nir.subtract(red).multiply(8)).sqrt()
+  ).divide(2).rename('MSAVI2');
+  return img.addBands(MSAVI2).clip(aoi);
 };
 
-//Map NDVI over collection
-var imageCollNDVI_LS57 = imageColl_LS57.map(addNDVI_LS57);
 
-var addNDVI_LS8 = function(img) {
-  var ndvi = img.normalizedDifference(['SR_B5', 'SR_B4']).rename('NDVI');
-  return img.addBands(ndvi).clip(aoi);
-};
-
-//Map NDVI over collection
-var imageCollNDVI_LS8 = Landsat_8_Corrected.map(addNDVI_LS8);
-
+//Map MSAVI over collection
+var imageCollMSAVI2_LS8 = Landsat_8_Corrected.map(addMSAVI2_LS8);
 
 //MergeCollections 
-var imgColl_wNDVI_Clipped = imageCollNDVI_LS57.merge(imageCollNDVI_LS8);
+var imgColl_MSAVI2_Clipped = imageCollMSAVI2_LS57.merge(imageCollMSAVI2_LS8);
 
-
-//-----------------------------6. CREATE GREENNESS IMAGE FOR EACH YEAR --------------------------------------------//
+//-----------------------------5. CREATE GREENNESS IMAGE FOR EACH YEAR --------------------------------------------//
 //Filter collection per year --> Use Quality Mosaic to Reduce Image Collection to Image 
 var createComposite = function(collection) {
   var filteredCol = collection
         .filterDate(year.toString() + anniversayWindowStart, year.toString()+ anniversayWindowEnd); 
-  var greenestPixelComposite = filteredCol.select('NDVI').reduce(ee.Reducer.max()).rename('greennessRaw');
+  //var greenestPixelComposite = filteredCol.select('NDVI').reduce(ee.Reducer.max()).rename('greennessRaw'); // max NDVI
+  var greenestPixelComposite = filteredCol.select(vegInd).reduce(ee.Reducer.percentile([90])).rename('greennessRaw'); //90th percentile NDVI
   return greenestPixelComposite;
 };
 
 //Compile List of Greenest Pixels per year and set system time (erased with composite)
 //"Raw" because imagery gaps and masked cloud pixels are still in data
 //Include 1984 to create proxy image for 1985
-//Include 2024 to create proxy image for 2023
+//Include 2023 to create proxy image for 2022
 var greenestListRaw = ee.List([]);
 for (var year = startYear_Num - 1; year <= endYear_Num + 1; year++) {
-  var greenestThisYear = createComposite(imgColl_wNDVI_Clipped);
+  var greenestThisYear = createComposite(imgColl_MSAVI2_Clipped);
   var nextYear = year + 1;
   var system_time_start = ee.Date(year.toString() + startMonth).millis();
   var system_time_end = ee.Date(nextYear.toString() + startMonth).millis();
@@ -276,9 +244,9 @@ for (var year = startYear_Num - 1; year <= endYear_Num + 1; year++) {
   greenestListRaw = greenestListRaw.add(greenestThisYear);
 }
 
-//print(greenestListRaw, 'Greenness Raw Data')
+print(greenestListRaw, 'Greenness Raw Data')
 
-//-------------------------------7. REPLACE CLOUD MASKED PIXELS WITH PROXY VALUES CALC FROM OTHER YREARS
+//-------------------------------6. REPLACE CLOUD MASKED PIXELS WITH PROXY VALUES CALC FROM OTHER YREARS
 // -------------------CREATE A PROXY COLLECTION TO SUB OUT MASKED VALUES------------------------------//
 //PURPOSE: IF A PIXEL IS MASKED BECAUSE OF CLOUD COVER OR IMAGERY GAP. WE CAN SWAP IN THE MEAN GREENESS FROM THE PREVIOUS AND 
 // NEXT YEAR. 
@@ -294,12 +262,13 @@ var createMeanComposite = function(collection) {
         .filterDate(previousYear.toString() + startMonth, previousYear.toString()+ endMonth)).toBands(); 
   var Img_NextYear = (collection
         .filterDate(nextYear.toString() + startMonth, nextYear.toString()+ endMonth)).toBands(); 
-  var sumNDVI = Img_PreviousYear.add(Img_NextYear);
-  var createMeanImg = sumNDVI.divide(2).rename('greennessMeanProxy');
+  var sumVeg = Img_PreviousYear.add(Img_NextYear);
+  var createMeanImg = sumVeg.divide(2).rename('greennessMeanProxy');
   return createMeanImg;
 };
 
 //Compile List of Greenest Pixels per year and set system time (erased with composite)
+//EndYear - 1 because 2023 data is not available
 var greenestProxyList = ee.List([]);
 for (var year = startYear_Num; year <= endYear_Num; year++) {
     var previousYear = year - 1
@@ -376,7 +345,8 @@ var unmaskedGreennessColl_Sum = unmaskedGreennessColl_1000.sum().rename('maskSum
 // STEP 3: AddSummed Image to Every Image in stack, select pixels lte 900, mask
 var removeMaskedPixels = function(img) {
   var addSum = img.addBands(unmaskedGreennessColl_Sum)
-  var removeMaskedPixels = addSum.select('maskSum').lte([900]);
+  var removeMaskedPixels = addSum.select('maskSum').lte([900]).gte([-14]);
+  var removeMaskedPixels2 = addSum.select('maskSum').gte([-14]);
   var correctStackImg =  addSum.updateMask(removeMaskedPixels)
   return(correctStackImg)
 }
@@ -384,96 +354,7 @@ var removeMaskedPixels = function(img) {
 var GreennessColl = GreennessColl_wMaskedPixels.map(removeMaskedPixels);
 //print(GreennessColl, 'Greenness Collection');
 
-//Send GreennessColl to List to prepare integration of precip data
-var greenestList = GreennessColl.toList(numYears + 1, 0);
-print(greenestList, "List of Corrected Images");
-
-
-
-
-//---------8. Combine Precipitation and Greenness Lists into Image Collection -------------------//
-
-// add precipitation band to greenest pixel composites
-var greenestWprecipList = ee.List([]);
-for (var i = 0; i <= numYears; i++) {
-  var greenestThisYear = ee.Image(greenestList.get(i));
-  greenestThisYear = greenestThisYear.addBands(prepImageList.get(i));
-  greenestWprecipList = greenestWprecipList.add(greenestThisYear);
-}
-
-//Create Image Collection of Precip and Greenest NDVI per Pixel per Year
-var greenestWprecipColl = ee.ImageCollection(greenestWprecipList);
-
-
-//Create Function to Clip all Images in Collection
-var aoi_clip = function(image) {
-  return image.clip(aoi);
-};
-//Clips Images in Collection
-var greenestWprecipColl = greenestWprecipColl.map(aoi_clip);
-
-//print(greenestWprecipColl.getInfo(), "greenestWprecipColl");
-
-
-//-----------9. Regress Precipitation and Greenness per Year per AOI--------------------------//
-
-// precipitation vs ndvi regression
-var linearFit = greenestWprecipColl
-    .select(['precipitation', 'greenness'])
-    .reduce(ee.Reducer.linearFit());
-
-
-// function to add a list of scale and offset from 'linearFit' to collection
-var addRegression2Collection = function (img) {
-  var scale = linearFit.select('scale');
-  var offset = linearFit.select('offset');
-  return img.addBands([scale, offset]);
-};
-
-// add scale and offset as bands in greenestWprecipList collection
-greenestWprecipColl = greenestWprecipColl.map(addRegression2Collection);
-
-
-// function to calculate predicted ndvi and residuals from precipitation
-var calcPredNdviAndResiduals = function (img1) {
-  var predNDVI = img1
-      .select('scale')
-      .multiply(img1.select('precipitation'))
-      .add(img1.select('offset'))
-      .rename('predictedNDVI');
-  img1 = img1.addBands([predNDVI]);
-  var residual = img1
-      .select('predictedNDVI')
-      .subtract(img1.select('greenness'))
-      .multiply(-1) //Corrects direction of residual 
-      .toFloat()
-      .rename('residual');
-  return img1.addBands([residual]);
-};
-
-
-// calculate predicted ndvi and residuals
-greenestWprecipColl = greenestWprecipColl.map(calcPredNdviAndResiduals);
-
-
-//Prepares Collection to be run in LandTrendr subsetting Residual and Greenness 
-var compileresidualColl = function (image) {
-  return image.select(['residual', 'greenness']);
-};
-
-//Maps compileresidualColl
-var residualColl = greenestWprecipColl.map(compileresidualColl);
-//print(residualColl.getInfo(), 'Residual Collection');
-
-//Creates copy of residuals in new band for which LT exports fitted values
-//var copyResidual = function(image) {
-  //var copyResidual = image.select('residual').multiply(1).rename('residualCOPY');
-  //return image.addBands(copyResidual);
-//};
-
-//residualColl = residualColl.map(copyResidual);
-
-//--------10. CLIP COLLECTION to relevant NLCD classes-----------//
+//--------7. CLIP COLLECTION to relevant NLCD classes-----------//
 
 //Create Function to Clip all Images in Collection to relevant NLCD classes
 
@@ -482,12 +363,16 @@ var NLCD_clip = function(image) {
 };
 
 //Clips Images in Collection
-residualColl = residualColl.map(NLCD_clip);
+GreennessColl = GreennessColl.map(NLCD_clip);
 
 
-//-----------------------11. EXPORT OBSERVED GREENNESS VALUES-------------------------------//
+
+//-----------------------8. EXPORT OBSERVED GREENNESS VALUES-------------------------------//
 //Select Greenness band from residual collection
-var observedGreennessStack = residualColl.select('greenness').toBands();
+var observedGreennessStack = GreennessColl.select('greenness').toBands();
+//print(observedGreennessStack.getInfo());
+//print(observedGreennessStack, "Observed Greenness Stack")
+//Map.addLayer(observedGreennessStack, {}, "Observed Greenness Stack")
 
 var observedGreenness = ee.Image();
 
@@ -498,41 +383,37 @@ for (var i = 0; i <= numYears; i++) {
   selBand = selBand.rename('greenness_' + getYear.toString());
   observedGreenness = observedGreenness.addBands(selBand);
 }
+print(observedGreenness)
+
+//remove band 0 because it is the constant from the regression
+function removeB0(img) {
+  return img.select(
+    img.bandNames().filter(
+       ee.Filter.stringEndsWith('item', 'constant').not()));
+}
+
+function to_float(img) {
+  return img.toFloat()
+}
+
+var Greenness_rmb0 = removeB0(observedGreenness)
+var Greenness_download = to_float(Greenness_rmb0)
+print(Greenness_rmb0)
+print(Greenness_download, "greenness to download")
 
 //print(observedGreenness)
 Export.image.toAsset({
-  image: observedGreenness,
-  description: aoi_name + '_obGreenness_CorrectedImagery',
-  assetId: aoi_name + '_obGreenness_CorrectedImagery',
+  image: Greenness_download,
+  description: aoi_name + '_' + vegInd + '_CorrectedImagery',
+  assetId: aoi_name + '_' + vegInd + '_CorrectedImagery',
   scale: 30,
   region: aoi,
   maxPixels: 200000000
 });
 
+var maxReducer = ee.Reducer.min();
+print(Greenness_download.select("greenness_2012").reduceRegion(maxReducer,aoi))
+
 //print(observedGreenness.getInfo(), aoi_name + ' Observed Greenness');
 
-//----------------------12.  Residual Collection Visualization---------------------------------//
-
-//Map Area of Interest Shapefile 
-var residualVisParams = {
-    bands: ["residual"],
-    max: 0.2,
-    min: -0.1,
-    opacity: 1,
-    palette: ["e70808", "ffffff","1de22c"] };
-
-var greennessParams = {
-    bands: ["greenness"],
-    max: 0.8,
-    min: 0.05,
-    opacity: 1,
-    palette: ["e70808", "ffffff","1de22c"] };
-    
-
-Map.addLayer(residualColl, residualVisParams, 'Residual Collection');
-Map.addLayer(residualColl.filterDate('2018-01-01', '2019-01-01'), greennessParams, 'Greenness 2018');
-Map.addLayer(observedGreenness, {}, 'Greenness Collection');
-Map.addLayer(vectorizeNLCD, {}, 'Check Alignment');
-Map.addLayer(aoi, {}, aoi_name);
-Map.centerObject(aoi, 8);
 //----------------------------------------------END SCRIPT--------------------------------------------//
