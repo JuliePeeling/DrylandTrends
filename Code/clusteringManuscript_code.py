@@ -45,14 +45,14 @@ import sys
 """# 2. Process Data Extracted from Google Earth Engine
 
 ## 2.Note
-Download raster(s) of residual greenness extracted from Google Earth Engine. This should be in the user's Google Drive.
+Download raster(s) of MSAVI2 greenness extracted from Google Earth Engine. This should be in the user's Google Drive.
 
 ## 2.1 Extract time series from Google Earth Engine rasters
 """
 
 ## Change directory to location of study area data
 os.getcwd()
-os.chdir(path_to_file) #INPUT: path to the file that contains the residual greenness rasters from GEE
+os.chdir(path_to_file) #INPUT: path to the file that contains the greenness rasters from GEE
 
 ## set up time range of study
 start_year = YR1 #INPUT: first year of the time series
@@ -60,8 +60,8 @@ end_year = YR2 #INPUT: last year of the time series
 
 #identify files to merge
 # the study area was too large for GEE to download as one raster, so this code provides a function to merge the separate rasters provided
-file1 = 'StudyArea_residualGreenness_file1.tif' #INPUT: file that contains the residual greenness raster 1 from GEE
-file2 = 'StudyArea_residualGreenness_file2.tif' #INPUT: file that contains the residual greenness raster 2 from GEE
+file1 = 'StudyArea_Greenness_file1.tif' #INPUT: file that contains the greenness raster 1 from GEE
+file2 = 'StudyArea_Greenness_file2.tif' #INPUT: file that contains the greenness raster 2 from GEE
 raster_file_list = [file1, file2]
 #file name of merged images
 mergedName = file1[0:-6] + "_merged.tif" #this removes the "#.tif" from the input files and replaces it with "merged.tif"
@@ -133,7 +133,7 @@ rasDF.to_csv(output_csv)
 
 ## Set working directory to location of file
 os.getcwd()
-os.chdir(path_to_file) #INPUT: path to the CSV file that contains the study area residual greenness time series
+os.chdir(path_to_file) #INPUT: path to the CSV file that contains the study area greenness time series
 
 ## import csv file with data and coordinates
 geoDF = pd.read_csv(output_csv)
@@ -159,7 +159,7 @@ ndvi_arr = df_scaled.to_numpy()
 kn = kneed.KneeLocator(
     x,
     y,
-    #S = 10,
+    #S = 20,
     curve='convex',
     direction='decreasing',
     interp_method='interp1d',
@@ -376,7 +376,7 @@ for i in np.arange(0,rows):
         if cluster_number == num_clusters:
             break
 fig.text(0.5,-0.01,'Year', ha='center', fontsize = 12)
-fig.text(-0.03, 0.5, 'Residual Greenness', va='center', rotation='vertical', fontsize = 12)
+fig.text(-0.03, 0.5, 'Greenness', va='center', rotation='vertical', fontsize = 12)
 #plt.savefig("StudyArea_kmeans_clusterStdev_unscaled.png",bbox_inches='tight') #INPUT: file name for unscaled plot of mean cluster time series and standard deviations
 
 """## 3.5 Map the pixels back into space with the cluster assignment"""
@@ -386,7 +386,7 @@ geoDF_reset.to_csv('StudyArea_clustered_kmeans.csv', index = False) #INPUT: file
 
 #import and read base raster file
 os.getcwd()
-os.chdir(path_to_file) ## path to raster file of the merged residual greenness raster files
+os.chdir(path_to_file) ## path to raster file of the merged greenness raster files
 ras_file = output_file #INPUT: file name of the merged raster file
 ras = rio.open(ras_file)
 
